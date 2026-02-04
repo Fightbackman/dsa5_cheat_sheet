@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aventurischer Almanach: Maße & Zeiten</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js DataLabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- Google Fonts for Atmosphere -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Configuration & Styles -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'parchment-light': '#fdf6e3', // Solarized base
+                        'parchment-dark': '#eee8d5',
+                        'ink-primary': '#433422', // Dark Brown
+                        'ink-secondary': '#5c4b37',
+                        'accent-gold': '#b58900',
+                        'accent-red': '#dc322f',
+                        'accent-blue': '#268bd2',
+                        'accent-green': '#859900',
+                    },
+                    fontFamily: {
+                        'header': ['Cinzel', 'serif'],
+                        'body': ['Lato', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px; 
+            max-height: 500px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 320px;
+            }
+        }
+        
+        body {
+            background-color: #fdf6e3;
+            color: #433422;
+        }
+
+        /* Table Styling */
+        .ref-table th {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: #b58900; /* accent-gold */
+            border-bottom: 2px solid #eee8d5;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .ref-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee8d5;
+        }
+        .ref-table tr:last-child td {
+            border-bottom: none;
+        }
+        .ref-table tr:hover {
+            background-color: rgba(181, 137, 0, 0.05);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #eee8d5; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #b58900; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #967201; 
+        }
+    </style>
+
+    <!-- Placeholder Comments -->
+    <!-- Application Structure Plan: 
+         1. Header: Immersive branding.
+         2. Tab Navigation: 
+            - Maßeinheiten (Static Lists): Detailed tables for Length, Weight, Volume.
+            - Kalender (Interactive Chart): Wheel of the year.
+            - Referenz (Money/Compass): Visual references.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="font-body antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-ink-primary text-parchment-light shadow-lg border-b-4 border-accent-gold">
+        <div class="container mx-auto px-4 py-6 text-center">
+            <h1 class="font-header text-3xl md:text-5xl font-bold tracking-wider mb-2">Aventurischer Almanach</h1>
+            <p class="text-sm md:text-base text-parchment-dark opacity-90 italic">Ein Führer zu Maßen, Gewichten und dem Lauf der Zeit</p>
+        </div>
+    </header>
+
+    <!-- Main Navigation -->
+    <nav class="bg-parchment-dark shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-2">
+            <div class="flex flex-wrap justify-center space-x-1 md:space-x-4">
+                <button onclick="switchTab('units')" id="tab-units" class="nav-btn px-4 py-3 font-header font-bold border-b-4 border-transparent hover:border-accent-gold focus:outline-none text-ink-primary transition-all active-tab">
+                    📏 Maßeinheiten
+                </button>
+                <button onclick="switchTab('calendar')" id="tab-calendar" class="nav-btn px-4 py-3 font-header font-bold border-b-4 border-transparent hover:border-accent-gold focus:outline-none text-ink-primary transition-all">
+                    ☉ Der Kalender
+                </button>
+                <button onclick="switchTab('reference')" id="tab-reference" class="nav-btn px-4 py-3 font-header font-bold border-b-4 border-transparent hover:border-accent-gold focus:outline-none text-ink-primary transition-all">
+                    ⚖ Geld & Richtung
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="container mx-auto px-4 py-8 flex-grow">
+
+        <!-- SECTION 1: UNIT TABLES (Previously Converter) -->
+        <section id="view-units" class="view-section block animate-fade-in">
+            <div class="text-center mb-8 max-w-3xl mx-auto">
+                <h2 class="font-header text-3xl font-bold text-ink-primary mb-3">Aventurische Maße</h2>
+                <p class="text-ink-secondary">
+                    Seit der Reform durch Kaiser Reto (und spieltechnisch seit DSA 4/5) orientieren sich aventurische Maße am Dezimalsystem und entsprechen oft exakt metrischen Werten, um das Spiel zu erleichtern.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Length Table -->
+                <div class="bg-white rounded-lg shadow-xl border border-parchment-dark overflow-hidden">
+                    <div class="bg-parchment-dark p-4 border-b border-accent-gold">
+                        <h3 class="font-header font-bold text-xl text-ink-primary flex items-center">
+                            <span class="text-2xl mr-2">📏</span> Längenmaße
+                        </h3>
+                    </div>
+                    <table class="w-full ref-table text-sm">
+                        <thead>
+                            <tr>
+                                <th>Einheit</th>
+                                <th>Irdisch (ca.)</th>
+                                <th>Beschreibung</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-length-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Weight Table -->
+                <div class="bg-white rounded-lg shadow-xl border border-parchment-dark overflow-hidden">
+                    <div class="bg-parchment-dark p-4 border-b border-accent-gold">
+                        <h3 class="font-header font-bold text-xl text-ink-primary flex items-center">
+                            <span class="text-2xl mr-2">⚖️</span> Gewichte
+                        </h3>
+                    </div>
+                    <table class="w-full ref-table text-sm">
+                        <thead>
+                            <tr>
+                                <th>Einheit</th>
+                                <th>Irdisch (ca.)</th>
+                                <th>Beschreibung</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-weight-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Volume Table -->
+                <div class="bg-white rounded-lg shadow-xl border border-parchment-dark overflow-hidden">
+                    <div class="bg-parchment-dark p-4 border-b border-accent-gold">
+                        <h3 class="font-header font-bold text-xl text-ink-primary flex items-center">
+                            <span class="text-2xl mr-2">🍺</span> Hohlmaße
+                        </h3>
+                    </div>
+                    <table class="w-full ref-table text-sm">
+                        <thead>
+                            <tr>
+                                <th>Einheit</th>
+                                <th>Irdisch (ca.)</th>
+                                <th>Beschreibung</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-volume-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            
+            <div class="mt-8 p-4 bg-yellow-50 border-l-4 border-accent-gold text-sm text-ink-secondary italic text-center max-w-2xl mx-auto rounded shadow-sm">
+                "Ein Schritt ist ein Schritt, egal ob von einem Kaiser oder einem Bettler. Doch beim Schankwirt achte genau auf den Daumen am Eichstrich!" <br>– Altes Händler-Sprichwort
+            </div>
+        </section>
+
+        <!-- SECTION 2: CALENDAR & TIME -->
+        <section id="view-calendar" class="view-section hidden animate-fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                
+                <div class="lg:col-span-2 text-center mb-4">
+                    <h2 class="font-header text-3xl font-bold text-ink-primary mb-3">Der Lauf der Zwölfe</h2>
+                    <p class="text-ink-secondary max-w-3xl mx-auto">
+                        Ein aventurisches Jahr hat genau 365 Tage. Es besteht aus 12 Monaten zu je 30 Tagen (benannt nach den Zwölfgöttern) und 5 "Namenlosen Tagen" am Ende des Jahres.
+                    </p>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow-lg border border-parchment-dark flex flex-col items-center">
+                    <h3 class="font-header text-xl font-bold mb-4">Das Rad des Jahres</h3>
+                    <div class="chart-container">
+                        <canvas id="calendarChart"></canvas>
+                    </div>
+                    <p class="text-xs text-center mt-2 text-gray-500">Klicken Sie auf ein Segment für Details.</p>
+                </div>
+
+                <div class="space-y-6">
+                    <div id="month-detail-card" class="bg-parchment-light border-2 border-accent-gold p-6 rounded-lg shadow-md min-h-[200px] transition-all duration-300">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 id="detail-name" class="font-header text-2xl font-bold text-accent-gold uppercase">Praios</h3>
+                                <span id="detail-earth" class="text-sm font-bold text-gray-500 block">Juli</span>
+                            </div>
+                            <div id="detail-icon" class="text-4xl opacity-50">☀️</div>
+                        </div>
+                        <p id="detail-desc" class="text-ink-secondary mb-4">
+                            Der Monat der prallen Sonne und der Ordnung.
+                        </p>
+                        <div class="text-sm border-t border-accent-gold pt-2 flex justify-between">
+                            <span><strong>Gott:</strong> <span id="detail-god">Praios (Herrschaft, Sonne)</span></span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-parchment-dark p-4 rounded-lg shadow-sm">
+                        <h4 class="font-header font-bold text-lg mb-2 border-b pb-1">Wochentage</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-parchment-dark text-ink-primary font-bold">
+                                    <tr>
+                                        <th class="p-2">Aventurisch</th>
+                                        <th class="p-2">Irdisch</th>
+                                        <th class="p-2">Bedeutung</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    <tr><td class="p-2 font-bold">Rohalstag</td><td class="p-2">Montag</td><td class="p-2 text-gray-500">Mondtag</td></tr>
+                                    <tr><td class="p-2 font-bold">Feuerstag</td><td class="p-2">Dienstag</td><td class="p-2 text-gray-500">Ingerimm</td></tr>
+                                    <tr><td class="p-2 font-bold">Wassertag</td><td class="p-2">Mittwoch</td><td class="p-2 text-gray-500">Efferd</td></tr>
+                                    <tr><td class="p-2 font-bold">Erdtag</td><td class="p-2">Donnerstag</td><td class="p-2 text-gray-500">Peraine</td></tr>
+                                    <tr><td class="p-2 font-bold">Windstag</td><td class="p-2">Freitag</td><td class="p-2 text-gray-500">Rondra</td></tr>
+                                    <tr><td class="p-2 font-bold">Magiertag</td><td class="p-2">Samstag</td><td class="p-2 text-gray-500">Hesinde</td></tr>
+                                    <tr><td class="p-2 font-bold text-accent-gold">Praiostag</td><td class="p-2 font-bold">Sonntag</td><td class="p-2 text-gray-500">Ruhetag</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: REFERENCE & CURRENCY -->
+        <section id="view-reference" class="view-section hidden animate-fade-in">
+            <div class="text-center mb-8">
+                <h2 class="font-header text-3xl font-bold text-ink-primary mb-3">Münzen & Orientierung</h2>
+                <p class="text-ink-secondary">Wesentliche Referenzen für den Handel und die Reise durch Aventurien.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <div class="bg-white p-6 rounded-lg shadow-xl border border-parchment-dark">
+                    <h3 class="font-header text-xl font-bold mb-4 flex items-center">
+                        <span class="mr-2">💰</span> Das Währungssystem
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center bg-yellow-50 p-3 rounded border border-yellow-200">
+                            <div class="w-12 h-12 rounded-full bg-yellow-400 border-4 border-yellow-600 shadow-md flex items-center justify-center font-bold text-yellow-900 text-xs">D</div>
+                            <div class="ml-4 flex-grow">
+                                <div class="font-bold text-lg">Dukat (D)</div>
+                                <div class="text-xs text-gray-500">Die Goldmünze.</div>
+                            </div>
+                            <div class="text-right font-mono font-bold text-xl">= 10 S</div>
+                        </div>
+
+                        <div class="flex items-center bg-gray-50 p-3 rounded border border-gray-200 ml-4">
+                            <div class="w-10 h-10 rounded-full bg-gray-300 border-4 border-gray-400 shadow-md flex items-center justify-center font-bold text-gray-700 text-xs">S</div>
+                            <div class="ml-4 flex-grow">
+                                <div class="font-bold text-base">Silbertaler (S)</div>
+                                <div class="text-xs text-gray-500">Standardwährung.</div>
+                            </div>
+                            <div class="text-right font-mono font-bold text-lg text-gray-600">= 10 H</div>
+                        </div>
+
+                        <div class="flex items-center bg-orange-50 p-3 rounded border border-orange-200 ml-8">
+                            <div class="w-8 h-8 rounded-full bg-orange-300 border-4 border-orange-500 shadow-md flex items-center justify-center font-bold text-orange-900 text-[10px]">H</div>
+                            <div class="ml-4 flex-grow">
+                                <div class="font-bold text-sm">Heller (H)</div>
+                                <div class="text-xs text-gray-500">Kupfermünze.</div>
+                            </div>
+                            <div class="text-right font-mono font-bold text-base text-gray-500">= 10 K</div>
+                        </div>
+
+                        <div class="flex items-center bg-stone-50 p-3 rounded border border-stone-200 ml-12">
+                            <div class="w-6 h-6 rounded-full bg-stone-400 border-2 border-stone-600 shadow-sm flex items-center justify-center font-bold text-stone-800 text-[8px]">K</div>
+                            <div class="ml-4 flex-grow">
+                                <div class="font-bold text-xs">Kreuzer (K)</div>
+                                <div class="text-xs text-gray-500">Kleingeld.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-xl border border-parchment-dark">
+                    <h3 class="font-header text-xl font-bold mb-4 flex items-center">
+                        <span class="mr-2">🧭</span> Himmelsrichtungen
+                    </h3>
+                    <div class="relative w-full h-64 border-2 border-dashed border-parchment-dark rounded-full flex items-center justify-center bg-parchment-light">
+                        <div class="absolute w-full h-1 bg-parchment-dark opacity-20"></div>
+                        <div class="absolute h-full w-1 bg-parchment-dark opacity-20"></div>
+
+                        <div class="absolute top-2 text-center">
+                            <div class="font-bold text-accent-blue">FIRUN</div>
+                            <div class="text-xs text-gray-500">Norden</div>
+                        </div>
+                        <div class="absolute bottom-2 text-center">
+                            <div class="font-bold text-accent-gold">PRAIOS</div>
+                            <div class="text-xs text-gray-500">Süden</div>
+                        </div>
+                        <div class="absolute left-2 text-center w-20">
+                            <div class="font-bold text-accent-green">EFFERD</div>
+                            <div class="text-xs text-gray-500">Westen</div>
+                        </div>
+                        <div class="absolute right-2 text-center w-20">
+                            <div class="font-bold text-red-700">TSA</div>
+                            <div class="text-xs text-gray-500">Osten</div>
+                        </div>
+                        <div class="z-10 bg-white p-2 rounded-full border border-accent-gold shadow-sm">
+                            <div class="text-2xl">⚜️</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-ink-primary text-parchment-dark py-6 mt-auto">
+        <div class="container mx-auto px-4 text-center text-sm">
+            <p class="opacity-70 mb-2">Inoffizielles Fan-Tool. "Das Schwarze Auge" ist ein eingetragenes Markenzeichen der Ulisses Spiele GmbH.</p>
+            <p class="font-header">Mögen die Zwölfe mit dir sein.</p>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Register DataLabels
+        Chart.register(ChartDataLabels);
+
+        // --- DATA & STATE ---
+
+        // Reference Data
+        const unitData = {
+            length: [
+                { name: 'Finger', earth: '2 cm', desc: 'Breite eines Fingers' },
+                { name: 'Spann', earth: '20 cm', desc: 'Gespreizte Hand (10 Finger)' },
+                { name: 'Schritt', earth: '1 m', desc: 'Basisgröße (5 Spann)' },
+                { name: 'Meile', earth: '1 km', desc: '1000 Schritt' }
+            ],
+            weight: [
+                { name: 'Gran', earth: '0,8 g', desc: 'Ein Korn (Pflanzensamen)' },
+                { name: 'Karat', earth: '0,2 g', desc: 'Edelsteingewicht' },
+                { name: 'Skrupel', earth: '1 g', desc: 'Münzgewicht' },
+                { name: 'Unze', earth: '25 g', desc: '25 Skrupel' },
+                { name: 'Stein', earth: '1 kg', desc: '40 Unzen' },
+                { name: 'Quader', earth: '100 kg', desc: '100 Stein' },
+                { name: 'Last', earth: '1 t', desc: '10 Quader (Wagenladung)' }
+            ],
+            volume: [
+                { name: 'Schank', earth: '0,2 l', desc: 'Ein Becher Wein' },
+                { name: 'Mäßchen', earth: '0,5 l', desc: 'Kleines Maß' },
+                { name: 'Stübchen', earth: '2 l', desc: 'Ein kleiner Krug' },
+                { name: 'Eimer', earth: '12 l', desc: 'Handelsgröße' },
+                { name: 'Fass', earth: '50 l', desc: 'Großes Fass' }
+            ]
+        };
+
+        const calendarData = [
+            { name: 'Praios', earth: 'Juli', god: 'Praios (Sonne, Recht)', color: '#FFD700', desc: 'Der Hochsommer. Trocken, heiß, goldene Felder. Monat der Ordnung.', icon: '☀️' },
+            { name: 'Rondra', earth: 'August', god: 'Rondra (Kampf, Sturm)', color: '#DC143C', desc: 'Spätsommergewitter, heiße Tage, Turnierzeit.', icon: '⚔️' },
+            { name: 'Efferd', earth: 'September', god: 'Efferd (Wasser, Wind)', color: '#1E90FF', desc: 'Beginn des Herbstes, Stürme auf dem Meer.', icon: '🌊' },
+            { name: 'Travia', earth: 'Oktober', god: 'Travia (Gastfreundschaft)', color: '#FFA500', desc: 'Erntezeit, goldener Herbst, Heimkehr.', icon: '🏠' },
+            { name: 'Boron', earth: 'November', god: 'Boron (Tod, Schlaf)', color: '#4B0082', desc: 'Nebelmonat, die Tage werden dunkel und kalt.', icon: '💀' },
+            { name: 'Hesinde', earth: 'Dezember', god: 'Hesinde (Wissen, Kunst)', color: '#2E8B57', desc: 'Winteranfang, Zeit des Studiums und der Geschichten.', icon: '🐍' },
+            { name: 'Firun', earth: 'Januar', god: 'Firun (Jagd, Kälte)', color: '#E0FFFF', desc: 'Tiefer Winter, Schnee und Eis dominieren.', icon: '❄️' },
+            { name: 'Tsa', earth: 'Februar', god: 'Tsa (Wandel, Leben)', color: '#FF69B4', desc: 'Tauperioden, erste Knospen, Aufbruch.', icon: '🌱' },
+            { name: 'Phex', earth: 'März', god: 'Phex (Handel, Diebe)', color: '#708090', desc: 'Frühling, Nebel am Morgen, Marktsaison beginnt.', icon: '🦊' },
+            { name: 'Peraine', earth: 'April', god: 'Peraine (Ackerbau)', color: '#32CD32', desc: 'Aussaat, blühende Natur, Wachstum.', icon: '🌾' },
+            { name: 'Ingerimm', earth: 'Mai', god: 'Ingerimm (Feuer, Erz)', color: '#FF4500', desc: 'Warmer Frühling/Frühsommer, Zeit des Handwerks.', icon: '🔨' },
+            { name: 'Rahja', earth: 'Juni', god: 'Rahja (Rausch, Liebe)', color: '#800000', desc: 'Der Wonnemonat. Feste, Wein und Freude.', icon: '🍷' },
+            { name: 'Namenlos', earth: 'Wende', god: 'Der Namenlose', color: '#1a1a1a', desc: '5 Tage außerhalb der Zeit. Unglückbringend.', icon: '🌑' }
+        ];
+
+        // --- CORE FUNCTIONS ---
+
+        function init() {
+            renderUnitTables();
+            renderCalendarChart();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('border-accent-gold', 'bg-parchment-light');
+                btn.classList.add('border-transparent');
+            });
+            const activeBtn = document.getElementById('tab-' + tabId);
+            activeBtn.classList.remove('border-transparent');
+            activeBtn.classList.add('border-accent-gold', 'bg-parchment-light');
+        }
+
+        // --- UNIT TABLE RENDERER ---
+        
+        function renderUnitTables() {
+            // Helper function to create rows
+            const createRows = (data, tbodyId) => {
+                const tbody = document.getElementById(tbodyId);
+                tbody.innerHTML = '';
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="font-bold text-ink-primary">${item.name}</td>
+                        <td class="font-mono text-ink-secondary">${item.earth}</td>
+                        <td class="text-gray-600 italic">${item.desc}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            };
+
+            createRows(unitData.length, 'table-length-body');
+            createRows(unitData.weight, 'table-weight-body');
+            createRows(unitData.volume, 'table-volume-body');
+        }
+
+        // --- CALENDAR CHART LOGIC ---
+
+        function renderCalendarChart() {
+            const ctx = document.getElementById('calendarChart').getContext('2d');
+            
+            const labels = calendarData.map(d => d.name);
+            const colors = calendarData.map(d => d.color);
+            const dataValues = calendarData.map(d => d.name === 'Namenlos' ? 5 : 30);
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataValues,
+                        backgroundColor: colors,
+                        borderColor: '#fdf6e3',
+                        borderWidth: 2,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: 20 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return calendarData[context.dataIndex].god;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            color: (ctx) => {
+                                const bg = ctx.dataset.backgroundColor[ctx.dataIndex];
+                                return (bg === '#FFD700' || bg === '#E0FFFF' || bg === '#32CD32' || bg === '#FF69B4') ? '#433422' : '#ffffff';
+                            },
+                            font: {
+                                family: 'Cinzel',
+                                weight: 'bold',
+                                size: (ctx) => window.innerWidth < 600 ? 9 : 11
+                            },
+                            formatter: (value, ctx) => {
+                                return ctx.chart.data.labels[ctx.dataIndex].toUpperCase();
+                            },
+                            rotation: (ctx) => {
+                                const meta = ctx.chart.getDatasetMeta(0);
+                                const model = meta.data[ctx.dataIndex];
+                                const midAngle = (model.startAngle + model.endAngle) / 2;
+                                return midAngle * (180 / Math.PI) + 90;
+                            },
+                            anchor: 'center',
+                            align: 'center',
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            updateMonthDetail(index);
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateMonthDetail(index) {
+            const data = calendarData[index];
+            const card = document.getElementById('month-detail-card');
+            
+            card.style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('detail-name').textContent = data.name;
+                document.getElementById('detail-name').style.color = data.color === '#1a1a1a' ? '#433422' : data.color;
+                document.getElementById('detail-earth').textContent = "Irdisch: ~" + data.earth;
+                document.getElementById('detail-god').textContent = data.god;
+                document.getElementById('detail-desc').textContent = data.desc;
+                document.getElementById('detail-icon').textContent = data.icon;
+
+                card.style.borderColor = data.color === '#1a1a1a' ? '#433422' : data.color;
+                card.style.opacity = 1;
+            }, 150);
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
